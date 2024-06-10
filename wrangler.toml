@@ -1,0 +1,10 @@
+name = "apiproxy-cloudflare-pages"
+compatibility_flags = [ "nodejs_compat" ]
+
+[vars]
+PASSWORD = "password"
+APIPROXY_SECRET = "apiproxy"
+
+[[kv_namespaces]]
+binding = "APIPROXY_RECORDS"
+id = ""

@@ -1,0 +1,18 @@
+{
+  "name": "apiproxy-worker",
+  "version": "0.0.1",
+  "description": "API proxy creation and management tool powered by Cloudflare Pages",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx wrangler pages dev ./ --port 38081"
+  },
+  "author": {
+    "name": "iamspark1e",
+    "url": "https://github.com/iamspark1e"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "github",
+    "url": "git@github.com:iamspark1e/apiproxy-cloudflare-pages.git"
+  }
+}

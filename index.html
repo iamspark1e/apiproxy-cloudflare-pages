@@ -1,0 +1,339 @@
+<html lang="en" data-theme="emerald">
+
+<head>
+    <title>API-Proxy Admin Pages</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.11.1/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <style>
+        html,
+        body {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .core-page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 8px 0;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        form .row+.row {
+            margin-top: 10px;
+        }
+
+        form .row label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        form .row label>input,
+        form .row label>select {
+            flex: 1;
+        }
+
+        table tr th {
+            text-align: center;
+        }
+
+        .loading-overlayer {
+            position: fixed;
+            left: 0;
+            top: 0;
+            background-color: rgba(0, 0, 0, .3);
+            z-index: 999;
+        }
+    </style>
+</head>
+
+<body x-data="indexData">
+    <div class="h-full w-full flex justify-center align-center loading-overlayer" x-show="loading"><span
+            class="loading loading-spinner text-secondary loading-lg"></span></div>
+    <!-- loaded data -->
+    <div class="core-page">
+        <div class="flex align-center justify-between">
+            <form x-on:submit="searchFilterFormSubmitHandler" class="flex align-center justify-between flex-1">
+                <label class="input input-bordered flex items-center gap-2 flex-1">
+                    <input type="text" class="grow" placeholder="Search" x-model="data_pagination.endpoint_filter" />
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
+                        class="w-4 h-4 opacity-70">
+                        <path fill-rule="evenodd"
+                            d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </label>
+                <button type="submit" class="btn btn-active btn-secondary" style="margin-left: 10px;">Search</button>
+            </form>
+            <button type="submit" class="btn btn-active btn-primary" style="margin-left: 10px;"
+                x-on:click="showCreateModal">Create</button>
+        </div>
+        <!-- data section -->
+        <div>
+            <div class="overflow-x-auto">
+                <table class="table table-xs">
+                    <thead>
+                        <tr>
+                            <!-- <th></th> -->
+                            <th>Endpoint</th>
+                            <th>To</th>
+                            <th>Rewrite Method</th>
+                            <th>Addtional Payload</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="data in recordData">
+                            <tr>
+                                <!-- <td></td> -->
+                                <td>
+                                    <div style="word-break: break-all;" x-text="data.name || data.endpoint"></div>
+                                </td>
+                                <td>
+                                    <div style="word-break: break-all;" x-text="data.to"></div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <div x-text="data.rewrite_method"></div>
+                                </td>
+                                <td>
+                                    <div><code style="word-break: break-all;"
+                                            x-text="data.additional_payload"></code></code></div>
+                                </td>
+                                <td width="120">
+                                    <div>
+                                        <!-- <button style="margin: 5px;" class="btn btn-xs btn-outline btn-primary">Test
+                                            Re-send</button> -->
+                                        <template x-if="data.loaded">
+                                            <button style="margin: 5px;" class="btn btn-xs btn-outline btn-secondary"
+                                            x-on:click="showCreateModal(data);">Edit...</button>
+                                        </template>
+                                        <template x-if="!data.loaded">
+                                            <button style="margin: 5px;" class="btn btn-xs btn-outline btn-secondary"
+                                            x-on:click="loadSingleRecord(data)">Load</button>
+                                        </template>
+                                        <button style="margin: 5px;"
+                                            class="btn btn-xs btn-outline btn-accent" x-on:click="delSingleRecord(data)">DELETE</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+            <div class="flex align-center justify-center mt-4">
+                <button class="join-item btn" x-on:click="loadExistRules" x-show="!data_fully_loaded">Load More...</button>
+            </div>
+        </div>
+        <dialog id="createModal" class="modal">
+            <div class="modal-box" style="width: 70%;height: 50%;">
+                <h3 class="font-bold text-lg" style="margin-bottom: 10px;">Create New Proxy</h3>
+                <form method="dialog" x-on:submit="saveNewRecord">
+                    <div class="row">
+                        <label>
+                            <span>Endpoint:</span>
+                            <input type="text" placeholder="enter endpoint..." x-model="edit_form_data.endpoint"
+                                class="input input-bordered w-full max-w-xs">
+                        </label>
+                    </div>
+                    <div class="row">
+                        <label>
+                            <span>To:</span>
+                            <input type="text" placeholder="enter API destination..." x-model="edit_form_data.to"
+                                class="input input-bordered w-full max-w-xs">
+                        </label>
+                    </div>
+                    <div class="row">
+                        <label>
+                            <span>Rewrite Method:</span>
+                            <select name="rewrite_method" class="select select-bordered w-full max-w-xs"
+                                x-model="edit_form_data.rewrite_method">
+                                <option value="get">GET</option>
+                                <option value="post">POST</option>
+                                <option value="put">PUT</option>
+                                <option value="delete">DELETE</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="row">
+                        <label>
+                            <span>Additional Payload:</span>
+                            <textarea class="textarea textarea-bordered" x-model="edit_form_data.additional_payload"
+                                style="display: block;flex-basis:100%;"></textarea>
+                        </label>
+                    </div>
+                    <div class="modal-action">
+                        <button class="btn btn-primary" type="submit">Save</button>
+                        <button class="btn" type="button" x-on:click="createModal.close();">Close</button>
+                    </div>
+                </form>
+            </div>
+        </dialog>
+    </div>
+    <footer style="text-align: center;font-size: 12px;"><a href="/logout" style="text-decoration: underline;">Logout</a></footer>
+</body>
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('indexData', () => {
+            return {
+                loading: true,
+                data_pagination: {
+                    cursor: "",
+                    limit: 20,
+                    endpoint_filter: ""
+                },
+                data_fully_loaded: false,
+                edit_form_data: {
+                    endpoint: "",
+                    to: "",
+                    rewrite_method: "GET",
+                    additional_payload: ""
+                },
+                recordData: [],
+                // methods
+                loadExistRules(skip_cursor = false) {
+                    let query = Alpine.raw(this.data_pagination);
+                    if(skip_cursor) query.cursor = "";
+                    const u = new URLSearchParams(query).toString();
+                    fetch(`/admin/api?${u}`, {
+                        method: "GET",
+                        credentials: "include",
+                    }).then(r => {
+                        if (r.status >= 200 && r.status < 400) {
+                            return r.json();
+                        } else {
+                            throw new Error(`HTTP Error(${r.status})`)
+                        }
+                    }).then(res => {
+                        // do something
+                        if(res.ok) {
+                            if(res.cursor) {
+                                this.data_pagination.cursor = res.cursor;
+                            } else {
+                                this.data_fully_loaded = true;
+                            }
+                            this.recordData = res.data || [];
+                        } else {
+                            this.recordData = [];
+                            alert(res.msg);
+                        }
+                    }).finally(() => {
+                        this.loading = false;
+                    }).catch(e => {
+                        alert(e.message);
+                    })
+                },
+                searchFilterFormSubmitHandler(e) {
+                    e.preventDefault();
+                    this.loadExistRules(true);
+                },
+                showCreateModal(data = {}) {
+                    let defaultObj = {
+                        endpoint: data.endpoint || "",
+                        to: data.to || "",
+                        rewrite_method: data.rewrite_method || "GET",
+                        additional_payload: data.additional_payload || ""
+                    }
+                    this.edit_form_data = defaultObj;
+                    createModal.showModal();
+                },
+                saveNewRecord() {
+                    if (!this.edit_form_data.endpoint) {
+                        alert("No endpoint! Please fill it.");
+                        return;
+                    }
+                    if (!this.edit_form_data.to) {
+                        alert("No to! Please fill it.");
+                        return;
+                    }
+                    fetch("/admin/api", {
+                        method: "POST",
+                        credentials: "include",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            endpoint: this.edit_form_data.endpoint || "",
+                            to: this.edit_form_data.to || "",
+                            rewrite_method: this.edit_form_data.rewrite_method || "GET",
+                            additional_payload: this.edit_form_data.additional_payload || ""
+                        })
+                    }).then(r => {
+                        if (r.status >= 200 && r.status < 400) {
+                            return r.json();
+                        } else {
+                            throw new Error(`HTTP Error(${r.status})`)
+                        }
+                    }).then(res => {
+                        // do something
+                        alert("New Proxy Configured.")
+                        createModal.close();
+                        this.loadExistRules(true)
+                    }).catch(e => {
+                        alert(e.message);
+                    })
+                },
+                loadSingleRecord(data) {
+                    if(!data.name) {
+                        alert("No record key.")
+                        return;
+                    }
+                    fetch(`/admin/read?key=${data.name}`, {
+                        method: "GET",
+                        credentials: "include",
+                    }).then(r => {
+                        if (r.status >= 200 && r.status < 400) {
+                            return r.json();
+                        } else {
+                            throw new Error(`HTTP Error(${r.status})`)
+                        }
+                    }).then(res => {
+                        this.recordData.forEach(record => {
+                            if(record.name === data.name) {
+                                Object.assign(record, {
+                                    ...record,
+                                    ...res.data,
+                                    loaded: true
+                                })
+                            }
+                        })
+                    }).catch(e => {
+                        alert(e.message);
+                    })
+                },
+                delSingleRecord(data) {
+                    if(!data.name && !data.endpoint) {
+                        alert("No record key.")
+                        return;
+                    }
+                    fetch(`/admin/api?key=${data.name || data.endpoint}`, {
+                        method: "DELETE",
+                        credentials: "include",
+                    }).then(r => {
+                        if (r.status >= 200 && r.status < 400) {
+                            return r.json();
+                        } else {
+                            throw new Error(`HTTP Error(${r.status})`)
+                        }
+                    }).then(res => {
+                        alert("Delete Success");
+                        this.loadExistRules(true);
+                    }).catch(e => {
+                        alert(e.message);
+                    })
+                },
+                // lifecycles
+                init() {
+                    this.loadExistRules();
+                }
+            }
+        })
+    })
+</script>
+
+</html>
